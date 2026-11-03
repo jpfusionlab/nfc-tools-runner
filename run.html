@@ -204,12 +204,13 @@
 
   function browserUrl(s) { return norm((s.v || {}).uri || ""); }
 
-  // Chrome hands facebook.com links to the Facebook app, so on Android this aims the link at Chrome itself.
+  // Chrome (and the OS) hand facebook.com links to the Facebook app. A link Chrome reaches through the "fallback" of an
+  // app link stays in the browser, so aim an app link at an app that doesn't exist and let Chrome use the fallback.
   function browserHref(s) {
     var u = browserUrl(s);
     var m = /^(https?):\/\/(.*)$/i.exec(u.replace(/#.*$/, ""));
     if (!isAndroid || !m) return u;
-    return "intent://" + m[2] + "#Intent;scheme=" + m[1] + ";package=com.android.chrome;S.browser_fallback_url=" +
+    return "intent://" + m[2] + "#Intent;scheme=" + m[1] + ";package=com.jpfusionlab.nosuchapp;S.browser_fallback_url=" +
       encodeURIComponent(u) + ";end";
   }
 
