@@ -59,7 +59,9 @@
   .eyebrow.off i { background:var(--accent); animation:none; }
   .eyebrow i { width:8px; height:8px; border-radius:50%; background:var(--ok); animation:blink 1.6s ease-in-out infinite; }
   h1 { font-size:27px; line-height:1.2; margin:0 0 8px; letter-spacing:-.01em; word-break:break-word; }
-  .lead { color:var(--muted); font-size:16px; margin:0 0 22px; }
+  .lead { color:var(--muted); font-size:16px; margin:0 0 22px; white-space:pre-line; overflow-wrap:anywhere; word-break:break-word; hyphens:auto; }
+  .lead.s2 { font-size:15px; line-height:1.45; } .lead.s3 { font-size:14px; line-height:1.4; } .lead.s4 { font-size:13px; line-height:1.4; }
+  .lead.long { text-align:left; }
 
   /* main button */
   button.go { position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; gap:10px; width:100%; min-height:70px; padding:16px;
@@ -413,9 +415,10 @@
       encodeURIComponent(u) + ";end";
   }
 
+  var altLabel = "Open in browser instead";
   function altLink(s) {
     if (s.t !== "OPEN_IN_APP" || offline) return null;
-    var a = el("a", "Open in browser instead", "alt");
+    var a = el("a", altLabel, "alt");
     a.href = browserHref(s);
     return a;
   }
@@ -501,12 +504,22 @@
     card.replaceChildren(w);
   }
 
+  // Longer messages get smaller text and wrap (and keep the owner's line breaks).
+  function leadEl(text) {
+    var n = text.length, p = el("p", text, "lead");
+    if (n > 90) p.classList.add("s2");
+    if (n > 180) p.classList.add("s3");
+    if (n > 320) p.classList.add("s4");
+    if (n > 90) p.classList.add("long");
+    return p;
+  }
+
   async function init() {
     var h = location.hash.slice(1);
     if (!h) { showMessage("Tap a tag to begin", "This page runs when you tap an NFC tag. Hold your phone against the tag and it will open here.", "WAVES"); return; }
     try { data = decode(h); } catch (e) { showMessage("This tag needs a refresh", "The link looks damaged. Ask the tag owner to rewrite it, then tap again.", "WARN"); return; }
     var steps = data.s || [];
-    var look = { d: clip(data.d, 120), b: clip(data.b, 30), i: imgSrc(data.i), k: hexColor(data.k) };
+    var look = { d: clip(data.d, 500), b: clip(data.b, 30), a: clip(data.a, 30), i: imgSrc(data.i), k: hexColor(data.k) };
     for (var i = 0; i < steps.length; i++) {
       var ok = await condMet(steps[i].c);
       plan.push({ step: steps[i], go: ok === true, unknown: ok === null });
@@ -543,7 +556,8 @@
     }
     if (look.d) lead = look.d;
     if (look.b) label = look.b;
-    card.replaceChildren(heroEl, eyebrow(offline ? "Offline mode · tag detected" : greeting() + " · tag detected", offline), el("h1", title), el("p", lead, "lead"));
+    if (look.a) altLabel = look.a;
+    card.replaceChildren(heroEl, eyebrow(offline ? "Offline mode · tag detected" : greeting() + " · tag detected", offline), el("h1", title), leadEl(lead));
     if (offline) {
       var web = firstNav && (firstNav.t === "OPEN_URL");
       var note = el("div", null, "status");
