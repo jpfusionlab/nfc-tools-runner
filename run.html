@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JP Fusion Lab Tag Runner</title>
+<style>
+  :root { --bg:#f5f6fb; --card:#ffffff; --text:#14172b; --muted:#5b6078; --accent:#2b3a9e; --accent-text:#ffffff; --ok:#1b7f4b; --skip:#8a8fa8; --warn:#b3261e; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#10121c; --card:#1b1e2e; --text:#eceefa; --muted:#a3a8c3; --accent:#7c8cff; --accent-text:#10121c; --ok:#5fd6a0; --skip:#7d829b; --warn:#ff8a80; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--text); font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:520px; margin:0 auto; }
+  header { display:flex; align-items:center; gap:12px; margin:8px 0 16px; }
+  .logo { width:40px; height:40px; flex:none; }
+  h1 { font-size:18px; margin:0; }
+  .sub { font-size:13px; color:var(--muted); }
+  .card { background:var(--card); border-radius:14px; padding:16px; margin-bottom:12px; }
+  h2 { font-size:20px; margin:0 0 8px; }
+  ul { list-style:none; padding:0; margin:0; }
+  li { padding:6px 0; border-top:1px solid color-mix(in srgb, var(--muted) 20%, transparent); font-size:15px; }
+  li:first-child { border-top:0; }
+  li.run { color:var(--ok); } li.skip { color:var(--skip); } li.err { color:var(--warn); }
+  button { width:100%; margin-top:12px; padding:14px; font:inherit; font-weight:600; border:0; border-radius:12px; background:var(--accent); color:var(--accent-text); }
+  .msg { font-size:18px; font-weight:600; margin:8px 0; word-break:break-word; }
+  .muted { color:var(--muted); font-size:14px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+      <path d="M24,2L43,13L43,35L24,46L5,35L5,13Z" fill="#2B3A9E" stroke="#4DD0E1" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M19,15L19,29Q19,33.5 14.5,33.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M27,34L27,14L31.5,14Q37.5,14 37.5,20Q37.5,26 31.5,26L27,26" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div><h1>JP Fusion Lab</h1><div class="sub">Tag Runner</div></div>
+  </header>
+  <div class="card" id="card"><div class="muted">Loading…</div></div>
+  <div id="messages"></div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var NAV = { OPEN_URL: 1, OPEN_IN_APP: 1, CALL: 1, SMS: 1, EMAIL: 1, MAPS: 1 };
+  var TITLES = {
+    OPEN_URL: "Open link", OPEN_IN_APP: "Open link in app", CALL: "Dial number", SMS: "Compose text",
+    EMAIL: "Compose email", MAPS: "Open map", CLIPBOARD: "Copy to clipboard", TOAST: "Show message",
+    VIBRATE: "Vibrate", DELAY: "Wait", STOP: "Stop"
+  };
+  var isAndroid = /Android/i.test(navigator.userAgent);
+  var card = document.getElementById("card");
+  var messages = document.getElementById("messages");
+  var data = null, plan = [], ran = false;
+
+  function el(tag, text, cls) {
+    var e = document.createElement(tag);
+    if (text != null) e.textContent = text;
+    if (cls) e.className = cls;
+    return e;
+  }
+
+  function decode(s) {
+    s = s.replace(/-/g, "+").replace(/_/g, "/");
+    while (s.length % 4) s += "=";
+    var bin = atob(s), bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+
+  function minutes(t) {
+    var m = /^\s*(\d{1,2}):(\d{2})\s*$/.exec(t || "");
+    if (!m) return null;
+    var h = +m[1], mi = +m[2];
+    return h < 24 && mi < 60 ? h * 60 + mi : null;
+  }
+
+  function battery() {
+    if (!navigator.getBattery) return Promise.resolve(null);
+    return navigator.getBattery().then(function (b) { return b; }, function () { return null; });
+  }
+
+  // Resolves to true / false, or null when this browser can't tell.
+  function condMet(c) {
+    if (!c) return Promise.resolve(true);
+    var type = c[0], a = c[1] || "", b = c[2] || "";
+    var now = new Date();
+    switch (type) {
+      case "TIME": {
+        var from = minutes(a), to = minutes(b);
+        if (from == null || to == null) return Promise.resolve(false);
+        var n = now.getHours() * 60 + now.getMinutes();
+        return Promise.resolve(from <= to ? (n >= from && n <= to) : (n >= from || n <= to));
+      }
+      case "DAYS": {
+        var names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        var list = a.split(",").map(function (x) { return x.trim(); });
+        return Promise.resolve(list.indexOf(names[now.getDay()]) >= 0);
+      }
+      case "BATTERY_BELOW": case "BATTERY_ABOVE": case "CHARGING": case "NOT_CHARGING":
+        return battery().then(function (bat) {
+          if (!bat) return null;
+          var pct = Math.round(bat.level * 100), lim = parseInt(a, 10);
+          if (type === "BATTERY_BELOW") return isNaN(lim) ? false : pct < lim;
+          if (type === "BATTERY_ABOVE") return isNaN(lim) ? false : pct > lim;
+          return type === "CHARGING" ? !!bat.charging : !bat.charging;
+        });
+      case "WIFI": case "NOT_WIFI": {
+        var conn = navigator.connection;
+        if (!conn || !conn.type) return Promise.resolve(null);
+        var wifi = conn.type === "wifi";
+        return Promise.resolve(type === "WIFI" ? wifi : !wifi);
+      }
+      default:
+        return Promise.resolve(true);
+    }
+  }
+
+  function norm(u) { return /^[a-z][a-z0-9+.-]*:/i.test(u) ? u : "https://" + u; }
+
+  // Chrome on Android turns an intent: link into "open this app, else go to the fallback page".
+  function intentUrl(u, pkg, fallback) {
+    var m = /^([a-z][a-z0-9+.-]*):\/\/(.*)$/i.exec(u);
+    if (!m || !pkg) return u;
+    var scheme = m[1], rest = m[2];
+    var fb = fallback === "Open Play Store page"
+      ? "https://play.google.com/store/apps/details?id=" + pkg
+      : (/^https?$/i.test(scheme) ? u : "");
+    return "intent://" + rest + "#Intent;scheme=" + scheme + ";package=" + pkg +
+      (fb ? ";S.browser_fallback_url=" + encodeURIComponent(fb) : "") + ";end";
+  }
+
+  function navUrl(s) {
+    var v = s.v || {};
+    switch (s.t) {
+      case "OPEN_URL": return norm(v.uri || "");
+      case "OPEN_IN_APP":
+        var u = norm(v.uri || "");
+        return isAndroid ? intentUrl(u, v.package, v.fallback) : u;
+      case "CALL": return "tel:" + (v.number || "").replace(/\s+/g, "");
+      case "SMS": return "sms:" + (v.number || "").replace(/\s+/g, "") + (v.body ? "?body=" + encodeURIComponent(v.body) : "");
+      case "EMAIL": {
+        var q = [];
+        if (v.subject) q.push("subject=" + encodeURIComponent(v.subject));
+        if (v.body) q.push("body=" + encodeURIComponent(v.body));
+        return "mailto:" + (v.to || "") + (q.length ? "?" + q.join("&") : "");
+      }
+      case "MAPS": {
+        var loc = (v.query || "").trim();
+        return /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(loc) ? "geo:" + loc.replace(/\s+/g, "") : "geo:0,0?q=" + encodeURIComponent(loc);
+      }
+    }
+    return "";
+  }
+
+  function describe(s) {
+    var v = s.v || {}, t = TITLES[s.t] || s.t;
+    var detail = v.uri || v.number || v.to || v.query || v.text || v.seconds || "";
+    return t + (detail ? ": " + detail : "");
+  }
+
+  function say(text, cls) { messages.appendChild(el("div", text, cls || "msg")); }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  async function run() {
+    ran = true;
+    for (var i = 0; i < plan.length; i++) {
+      var p = plan[i], s = p.step;
+      if (!p.go) continue;
+      if (s.t === "STOP") { say("Stopped."); return; }
+      if (NAV[s.t]) {
+        var url = navUrl(s);
+        if (!url) { say("This step has no address.", "msg"); return; }
+        window.__lastNav = url;
+        if (!window.__NO_NAV) window.location.href = url;
+        return; // only the first opening step can run
+      }
+      var v = s.v || {};
+      if (s.t === "TOAST") say(v.text || "");
+      else if (s.t === "CLIPBOARD") {
+        try { await navigator.clipboard.writeText(v.text || ""); say("Copied to clipboard.", "muted"); }
+        catch (e) { say("Couldn't copy automatically. Tap Run again.", "muted"); }
+      }
+      else if (s.t === "VIBRATE") { if (navigator.vibrate) navigator.vibrate(Math.min(3000, +v.ms || 300)); }
+      else if (s.t === "DELAY") await sleep(Math.min(120, +v.seconds || 1) * 1000);
+    }
+  }
+
+  async function init() {
+    var h = location.hash.slice(1);
+    if (!h) {
+      card.replaceChildren(el("h2", "No workflow in this link"),
+        el("div", "Write a web tag from the JP Fusion Lab NFC app and tap it to open this page.", "muted"));
+      return;
+    }
+    try { data = decode(h); } catch (e) {
+      card.replaceChildren(el("h2", "This link is damaged"), el("div", "Rewrite the tag from the app.", "muted"));
+      return;
+    }
+    var steps = data.s || [];
+    for (var i = 0; i < steps.length; i++) {
+      var ok = await condMet(steps[i].c);
+      plan.push({ step: steps[i], go: ok === true, unknown: ok === null });
+    }
+    window.__plan = plan.map(function (p) { return (p.go ? "RUN " : "SKIP ") + describe(p.step); });
+
+    card.replaceChildren(el("h2", data.n || "Workflow"));
+    var ul = el("ul");
+    var opening = false;
+    plan.forEach(function (p) {
+      var line = describe(p.step);
+      var li;
+      if (p.go && NAV[p.step.t] && opening) li = el("li", "– " + line + " (only the first opening step runs)", "skip");
+      else if (p.go) { li = el("li", "✓ " + line, "run"); if (NAV[p.step.t]) opening = true; }
+      else li = el("li", "– " + line + (p.unknown ? " (this browser can't check the condition)" : " (condition not met)"), "skip");
+      ul.appendChild(li);
+    });
+    card.appendChild(ul);
+    var btn = el("button", "Run");
+    btn.addEventListener("click", function () { messages.replaceChildren(); run(); });
+    card.appendChild(btn);
+    card.appendChild(el("div", "If nothing opens by itself, tap Run. Your browser sometimes needs a tap before it will open an app.", "muted"));
+
+    if (!window.__NO_AUTORUN) setTimeout(function () { if (!ran) run(); }, 300);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
