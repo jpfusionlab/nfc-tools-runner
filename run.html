@@ -22,7 +22,8 @@
   li { padding:6px 0; border-top:1px solid color-mix(in srgb, var(--muted) 20%, transparent); font-size:15px; }
   li:first-child { border-top:0; }
   li.run { color:var(--ok); } li.skip { color:var(--skip); } li.err { color:var(--warn); }
-  button { width:100%; margin-top:12px; padding:14px; font:inherit; font-weight:600; border:0; border-radius:12px; background:var(--accent); color:var(--accent-text); }
+  button { width:100%; margin-top:12px; padding:18px 14px; font:inherit; font-size:18px; font-weight:700; border:0; border-radius:14px; background:var(--accent); color:var(--accent-text); }
+  a.alt { display:block; text-align:center; margin-top:14px; padding:8px; color:var(--accent); font-size:15px; }
   .msg { font-size:18px; font-weight:600; margin:8px 0; word-break:break-word; }
   .muted { color:var(--muted); font-size:14px; }
 </style>
@@ -30,11 +31,7 @@
 <body>
 <main>
   <header>
-    <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
-      <path d="M24,2L43,13L43,35L24,46L5,35L5,13Z" fill="#2B3A9E" stroke="#4DD0E1" stroke-width="2" stroke-linejoin="round"/>
-      <path d="M19,15L19,29Q19,33.5 14.5,33.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M27,34L27,14L31.5,14Q37.5,14 37.5,20Q37.5,26 31.5,26L27,26" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
+    <img class="logo" alt="" src="data:image/png;base64,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">
     <div><h1>JP Fusion Lab</h1><div class="sub">Tag Runner</div></div>
   </header>
   <div class="card" id="card"><div class="muted">Loading…</div></div>
@@ -120,11 +117,11 @@
   function norm(u) { return /^[a-z][a-z0-9+.-]*:/i.test(u) ? u : "https://" + u; }
 
   // Chrome on Android turns an intent: link into "open this app, else go to the fallback page".
-  function intentUrl(u, pkg, fallback) {
+  function intentUrl(u, pkg, fallback, override) {
     var m = /^([a-z][a-z0-9+.-]*):\/\/(.*)$/i.exec(u);
     if (!m || !pkg) return u;
     var scheme = m[1], rest = m[2];
-    var fb = fallback === "Open Play Store page"
+    var fb = override ? override : fallback === "Open Play Store page"
       ? "https://play.google.com/store/apps/details?id=" + pkg
       : (/^https?$/i.test(scheme) ? u : "");
     return "intent://" + rest + "#Intent;scheme=" + scheme + ";package=" + pkg +
@@ -137,7 +134,7 @@
       case "OPEN_URL": return norm(v.uri || "");
       case "OPEN_IN_APP":
         var u = norm(v.uri || "");
-        return isAndroid ? intentUrl(u, v.package, v.fallback) : u;
+        return isAndroid ? intentUrl(u.replace(/#.*$/, ""), v.package, v.fallback) : u;
       case "CALL": return "tel:" + (v.number || "").replace(/\s+/g, "");
       case "SMS": return "sms:" + (v.number || "").replace(/\s+/g, "") + (v.body ? "?body=" + encodeURIComponent(v.body) : "");
       case "EMAIL": {
@@ -163,6 +160,43 @@
   function say(text, cls) { messages.appendChild(el("div", text, cls || "msg")); }
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
+  // Chrome only lets a web page open another app right after a tap. Without one it skips the app and goes
+  // straight to the fallback page (the website), which is why this page never opens apps by itself.
+  function hasTap() {
+    var ua = navigator.userActivation;
+    return !ua || ua.isActive;
+  }
+
+  function browserUrl(s) { return norm((s.v || {}).uri || ""); }
+
+  function altLink(s) {
+    if (s.t !== "OPEN_IN_APP") return null;
+    var a = el("a", "Open in the browser instead", "alt");
+    a.href = browserUrl(s);
+    return a;
+  }
+
+  // After a tap, tell the person if nothing happened, and offer the browser as the last resort.
+  function watchLaunch(s) {
+    var left = false;
+    function gone() { left = true; }
+    document.addEventListener("visibilitychange", gone);
+    window.addEventListener("pagehide", gone);
+    setTimeout(function () {
+      if (left || document.hidden) return;
+      say("Nothing opened. Tap the button to try again.", "muted");
+      var a = altLink(s);
+      if (a) messages.appendChild(a);
+    }, 2500);
+  }
+
+  function launch(s, url) {
+    window.__lastNav = url;
+    if (window.__NO_NAV) return;
+    window.location.href = url;
+    watchLaunch(s);
+  }
+
   async function run() {
     ran = true;
     for (var i = 0; i < plan.length; i++) {
@@ -172,15 +206,21 @@
       if (NAV[s.t]) {
         var url = navUrl(s);
         if (!url) { say("This step has no address.", "msg"); return; }
-        window.__lastNav = url;
-        if (!window.__NO_NAV) window.location.href = url;
+        if (!hasTap()) {
+          // The tap has gone stale (for example after a long Wait), so ask for a fresh one.
+          var again = el("button", "Tap to open");
+          again.addEventListener("click", function () { messages.replaceChildren(); launch(s, url); });
+          messages.appendChild(again);
+          return;
+        }
+        launch(s, url);
         return; // only the first opening step can run
       }
       var v = s.v || {};
       if (s.t === "TOAST") say(v.text || "");
       else if (s.t === "CLIPBOARD") {
         try { await navigator.clipboard.writeText(v.text || ""); say("Copied to clipboard.", "muted"); }
-        catch (e) { say("Couldn't copy automatically. Tap Run again.", "muted"); }
+        catch (e) { say("Couldn't copy automatically. Tap the button again.", "muted"); }
       }
       else if (s.t === "VIBRATE") { if (navigator.vibrate) navigator.vibrate(Math.min(3000, +v.ms || 300)); }
       else if (s.t === "DELAY") await sleep(Math.min(120, +v.seconds || 1) * 1000);
@@ -217,12 +257,33 @@
       ul.appendChild(li);
     });
     card.appendChild(ul);
-    var btn = el("button", "Run");
+    var firstNav = null;
+    plan.forEach(function (p) { if (!firstNav && p.go && NAV[p.step.t]) firstNav = p.step; });
+    var label = !firstNav ? "Run"
+      : firstNav.t === "OPEN_IN_APP" && isAndroid ? "Tap to open in the app"
+      : "Tap to open";
+    var btn = el("button", label);
     btn.addEventListener("click", function () { messages.replaceChildren(); run(); });
     card.appendChild(btn);
-    card.appendChild(el("div", "If nothing opens by itself, tap Run. Your browser sometimes needs a tap before it will open an app.", "muted"));
+    if (firstNav) {
+      var alt = altLink(firstNav);
+      if (alt) card.appendChild(alt);
+      card.appendChild(el("div", firstNav.t === "OPEN_IN_APP"
+        ? "Your browser only opens apps after a tap. One tap opens the link straight in the app. The website is used only if the app isn't installed."
+        : "Your browser only opens other apps after a tap.", "muted"));
+    }
 
-    if (!window.__NO_AUTORUN) setTimeout(function () { if (!ran) run(); }, 300);
+    // Steps that need no app (messages, clipboard, vibrate) can run on their own. Opening an app waits for the tap.
+    // Try the app once without a tap. Chrome may refuse that, and then it loads the fallback, which here is this
+    // same page (marked r=1) so it shows the tap button instead of the website. If it works, no tap is needed.
+    if (firstNav && firstNav.t === "OPEN_IN_APP" && isAndroid && !/[?&]r=1/.test(location.search) && !window.__NO_AUTORUN) {
+      var v0 = firstNav.v || {};
+      var self = location.origin + location.pathname + "?r=1" + location.hash;
+      var auto = intentUrl(norm(v0.uri || "").replace(/#.*$/, ""), v0.package, v0.fallback, self);
+      setTimeout(function () { window.__lastAuto = auto; if (!window.__NO_NAV) window.location.replace(auto); }, 200);
+    }
+
+    if (!firstNav && !window.__NO_AUTORUN) setTimeout(function () { if (!ran) run(); }, 300);
   }
 
   init();
