@@ -204,10 +204,19 @@
 
   function browserUrl(s) { return norm((s.v || {}).uri || ""); }
 
+  // Chrome hands facebook.com links to the Facebook app, so on Android this aims the link at Chrome itself.
+  function browserHref(s) {
+    var u = browserUrl(s);
+    var m = /^(https?):\/\/(.*)$/i.exec(u.replace(/#.*$/, ""));
+    if (!isAndroid || !m) return u;
+    return "intent://" + m[2] + "#Intent;scheme=" + m[1] + ";package=com.android.chrome;S.browser_fallback_url=" +
+      encodeURIComponent(u) + ";end";
+  }
+
   function altLink(s) {
     if (s.t !== "OPEN_IN_APP") return null;
     var a = el("a", "Open in browser instead", "alt");
-    a.href = browserUrl(s);
+    a.href = browserHref(s);
     return a;
   }
 
@@ -329,6 +338,11 @@
     }
 
     if (!firstNav && !window.__NO_AUTORUN) setTimeout(function () { if (!ran) run(); }, 300);
+  }
+
+  // Saves a copy of this page on the phone (see sw.js) so tags keep working offline or if the site is down.
+  if ("serviceWorker" in navigator && location.protocol === "https:" || location.hostname === "localhost") {
+    try { navigator.serviceWorker.register("sw.js").catch(function () {}); } catch (e) {}
   }
 
   init();
